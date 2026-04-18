@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>健康トラッカー</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --border: #2a2a2a;
+    --accent: #ff6b35;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #666;
+    --good: #4ade80;
+    --warn: #facc15;
+    --bad: #f87171;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+  }
+
+  header {
+    margin-bottom: 28px;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.6rem;
+    letter-spacing: 2px;
+    color: #00d4ff;
+    line-height: 1;
+  }
+
+  .date-display {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.4;
+  }
+
+  .goal-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .goal-bar span {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* 今日のチェック */
+  section {
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-left: 2px;
+  }
+
+  .habit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .habit-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .habit-btn:active { transform: scale(0.97); }
+
+  .habit-btn.checked {
+    border-color: var(--good);
+    background: rgba(74, 222, 128, 0.08);
+  }
+
+  .habit-icon {
+    font-size: 1.6rem;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .habit-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .habit-sub {
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+
+  .check-mark {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--good);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .habit-btn.checked .check-mark { opacity: 1; }
+
+  /* 週間カウンター */
+  .counter-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .counter-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .counter-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .counter-icon { font-size: 1.4rem; }
+
+  .counter-info {}
+  .counter-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .counter-limit {
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  .counter-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .count-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .count-btn:active { transform: scale(0.9); }
+  .count-btn.plus { border-color: var(--accent2); color: var(--accent2); }
+
+  .count-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    min-width: 28px;
+    text-align: center;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+
+  .count-display.ok { color: var(--good); }
+  .count-display.warn { color: var(--warn); }
+  .count-display.over { color: var(--bad); }
+
+  /* 週間サマリー */
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .summary-week {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .week-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .week-label {
+    font-size: 0.6rem;
+    color: var(--muted);
+  }
+
+  .week-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    transition: all 0.2s;
+  }
+
+  .week-dot.full { background: var(--good); color: #000; font-weight: 700; }
+  .week-dot.partial { background: var(--warn); color: #000; }
+  .week-dot.today { border: 2px solid var(--accent); }
+
+  .summary-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stat-item {
+    text-align: center;
+    padding: 10px 6px;
+    background: var(--bg);
+    border-radius: 8px;
+  }
+
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* リセットボタン */
+  .reset-area {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .reset-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .reset-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .week-reset-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .week-reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* 日曜特別枠バッジ */
+  .sunday-badge {
+    display: none;
+    background: rgba(232, 255, 71, 0.1);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.75rem;
+    color: var(--accent);
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .sunday-badge.show { display: block; }
+
+  /* toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--accent);
+    color: #000;
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 10px 20px;
+    border-radius: 100px;
+    transition: transform 0.3s ease;
+    z-index: 100;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <h1>HEALTH<br>TRACK</h1>
+    <div class="date-display" id="dateDisplay"></div>
+  </div>
+  <div style="margin-top:12px;" class="goal-bar">
+    目標：中性脂肪 <span>238→150台</span>　HDL <span>31→40以上</span>　健診 <span>8/18</span>
+  </div>
+</header>
+
+<div class="sunday-badge" id="sundayBadge">
+  🎉 今日は日曜日！彼女との外食デー。カウントなしの特別枠です。
+</div>
+
+<section>
+  <div class="section-title">今日のルーティン</div>
+  <div class="habit-grid">
+    <button class="habit-btn" id="mct" onclick="toggleHabit('mct')">
+      <span class="habit-icon">☕</span>
+      <span class="habit-label">MCTオイルコーヒー</span>
+      <span class="habit-sub">朝イチで飲んだ</span>
+      <div class="check-mark">✓</div>
+    </button>
+    <button class="habit-btn" id="protein" onclick="toggleHabit('protein')">
+      <span class="habit-icon">💪</span>
+      <span class="habit-label">プロテイン</span>
+      <span class="habit-sub">アーモンドミルク割り</span>
+      <div class="check-mark">✓</div>
+    </button>
+  </div>
+</section>
+
+<section>
+  <div class="section-title">週間カウンター（日曜外食は除く）</div>
+  <div class="counter-grid">
+    <div class="counter-row">
+      <div class="counter-left">
+        <span class="counter-icon">🍜</span>
+        <div class="counter-info">
+          <div class="counter-name">ラーメン</div>
+          <div class="counter-limit">週1回まで</div>
+        </div>
+      </div>
+      <div class="counter-right">
+        <button class="count-btn" onclick="changeCount('ramen', -1)">−</button>
+        <div class="count-display" id="ramen-display">0</div>
+        <button class="count-btn plus" onclick="changeCount('ramen', 1)">＋</button>
+      </div>
+    </div>
+    <div class="counter-row">
+      <div class="counter-left">
+        <span class="counter-icon">🍚</span>
+        <div class="counter-info">
+          <div class="counter-name">丼もの</div>
+          <div class="counter-limit">週2回まで目安</div>
+        </div>
+      </div>
+      <div class="counter-right">
+        <button class="count-btn" onclick="changeCount('donburi', -1)">−</button>
+        <div class="count-display" id="donburi-display">0</div>
+        <button class="count-btn plus" onclick="changeCount('donburi', 1)">＋</button>
+      </div>
+    </div>
+    <div class="counter-row">
+      <div class="counter-left">
+        <span class="counter-icon">🥡</span>
+        <div class="counter-info">
+          <div class="counter-name">中華</div>
+          <div class="counter-limit">週2回まで目安</div>
+        </div>
+      </div>
+      <div class="counter-right">
+        <button class="count-btn" onclick="changeCount('chinese', -1)">−</button>
+        <div class="count-display" id="chinese-display">0</div>
+        <button class="count-btn plus" onclick="changeCount('chinese', 1)">＋</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="section-title">今週のルーティン達成率</div>
+  <div class="summary-card">
+    <div class="summary-week" id="weekDots"></div>
+    <div class="summary-stats">
+      <div class="stat-item">
+        <div class="stat-num" id="stat-streak">0</div>
+        <div class="stat-label">連続日数</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="stat-week">0</div>
+        <div class="stat-label">今週達成日</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="stat-total">0</div>
+        <div class="stat-label">総達成日</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<button onclick="showDoctorView()" style="width:100%; padding:16px; border-radius:12px; border:none; background:#00d4ff; color:#000; font-family:'Noto Sans JP',sans-serif; font-weight:900; font-size:1rem; cursor:pointer; margin-bottom:10px; letter-spacing:1px;">🩺 先生に見せる</button>
+
+<div id="doctorModal" style="display:none; position:fixed; inset:0; background:#fff; z-index:999; overflow-y:auto; padding:24px 20px 40px; color:#111; font-family:'Noto Sans JP',sans-serif;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <div>
+      <div style="font-size:0.65rem; color:#888; letter-spacing:2px;">PATIENT REPORT</div>
+      <div style="font-family:'Bebas Neue',sans-serif; font-size:2rem; color:#111; letter-spacing:2px;">健康管理レポート</div>
+    </div>
+    <button onclick="hideDoctorView()" style="border:1px solid #ddd; background:#f5f5f5; border-radius:8px; padding:8px 14px; font-size:0.8rem; cursor:pointer;">✕ 閉じる</button>
+  </div>
+  <div style="background:#f9f9f9; border-radius:12px; padding:16px; margin-bottom:16px; border-left:4px solid #ef4444;">
+    <div style="font-size:0.65rem; font-weight:700; letter-spacing:2px; color:#888; margin-bottom:10px;">前回検査結果（2025年9月13日）</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <div style="background:#fff; border-radius:8px; padding:10px 12px; border:1px solid #eee;">
+        <div style="font-size:0.65rem; color:#888;">中性脂肪（基準値 50-149）</div>
+        <div style="font-size:1.6rem; font-weight:900; color:#ef4444;">238 <span style="font-size:0.7rem;">mg/dL</span></div>
+        <div style="font-size:0.65rem; color:#ef4444;">▲ 基準値超過</div>
+      </div>
+      <div style="background:#fff; border-radius:8px; padding:10px 12px; border:1px solid #eee;">
+        <div style="font-size:0.65rem; color:#888;">HDL（基準値 40-80）</div>
+        <div style="font-size:1.6rem; font-weight:900; color:#ef4444;">31 <span style="font-size:0.7rem;">mg/dL</span></div>
+        <div style="font-size:0.65rem; color:#ef4444;">▼ 基準値未満</div>
+      </div>
+      <div style="background:#fff; border-radius:8px; padding:10px 12px; border:1px solid #eee;">
+        <div style="font-size:0.65rem; color:#888;">LDL（基準値 70-139）</div>
+        <div style="font-size:1.6rem; font-weight:900; color:#22c55e;">91 <span style="font-size:0.7rem;">mg/dL</span></div>
+        <div style="font-size:0.65rem; color:#22c55e;">✓ 正常範囲</div>
+      </div>
+      <div style="background:#fff; border-radius:8px; padding:10px 12px; border:1px solid #eee;">
+        <div style="font-size:0.65rem; color:#888;">血糖値（基準値 70-109）</div>
+        <div style="font-size:1.6rem; font-weight:900; color:#22c55e;">74 <span style="font-size:0.7rem;">mg/dL</span></div>
+        <div style="font-size:0.65rem; color:#22c55e;">✓ 正常範囲</div>
+      </div>
+    </div>
+  </div>
+  <div style="background:#f9f9f9; border-radius:12px; padding:16px; margin-bottom:16px; border-left:4px solid #3b82f6;">
+    <div style="font-size:0.65rem; font-weight:700; letter-spacing:2px; color:#888; margin-bottom:10px;">生活改善の取り組み（4ヶ月間）</div>
+    <div style="display:flex; flex-direction:column; gap:8px; font-size:0.82rem;">
+      <div style="display:flex; align-items:center; gap:10px; background:#fff; border-radius:8px; padding:10px 12px; border:1px solid #eee;">
+        <span style="font-size:1.2rem;">☕</span>
+        <div><div style="font-weight:700;">朝：MCTオイルコーヒー</div><div style="font-size:0.68rem; color:#888;">血糖スパイク抑制・空腹管理</div></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; background:#fff; border-radius:8px; padding:10px 12px; border:1px solid #eee;">
+        <span style="font-size:1.2rem;">💪</span>
+        <div><div style="font-weight:700;">間食：プロテイン（アーモンドミルク割り）</div><div style="font-size:0.68rem; color:#888;">腸内環境改善・ドカ食い防止</div></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; background:#fff; border-radius:8px; padding:10px 12px; border:1px solid #eee;">
+        <span style="font-size:1.2rem;">🍜</span>
+        <div><div style="font-weight:700;">ラーメン・丼・中華を週3回以内に制限</div><div style="font-size:0.68rem; color:#888;">糖質由来の中性脂肪上昇を抑制</div></div>
+      </div>
+    </div>
+  </div>
+  <div style="background:#f9f9f9; border-radius:12px; padding:16px; margin-bottom:16px; border-left:4px solid #22c55e;">
+    <div style="font-size:0.65rem; font-weight:700; letter-spacing:2px; color:#888; margin-bottom:10px;">ルーティン達成状況</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; text-align:center;">
+      <div style="background:#fff; border-radius:8px; padding:12px 8px; border:1px solid #eee;">
+        <div id="doc-streak" style="font-family:'Bebas Neue',sans-serif; font-size:2.2rem; color:#22c55e; line-height:1;">0</div>
+        <div style="font-size:0.62rem; color:#888; margin-top:2px;">連続日数</div>
+      </div>
+      <div style="background:#fff; border-radius:8px; padding:12px 8px; border:1px solid #eee;">
+        <div id="doc-total" style="font-family:'Bebas Neue',sans-serif; font-size:2.2rem; color:#3b82f6; line-height:1;">0</div>
+        <div style="font-size:0.62rem; color:#888; margin-top:2px;">総達成日数</div>
+      </div>
+      <div style="background:#fff; border-radius:8px; padding:12px 8px; border:1px solid #eee;">
+        <div id="doc-rate" style="font-family:'Bebas Neue',sans-serif; font-size:2.2rem; color:#f59e0b; line-height:1;">0%</div>
+        <div style="font-size:0.62rem; color:#888; margin-top:2px;">達成率</div>
+      </div>
+    </div>
+  </div>
+  <div style="background:#fff8e1; border-radius:12px; padding:16px; border:1px solid #fcd34d;">
+    <div style="font-size:0.65rem; font-weight:700; letter-spacing:2px; color:#888; margin-bottom:8px;">次回検査目標（2026年8月18日）</div>
+    <div style="display:flex; justify-content:space-around; text-align:center;">
+      <div>
+        <div style="font-size:0.68rem; color:#888;">中性脂肪</div>
+        <div style="font-size:0.9rem; color:#ef4444; font-weight:700;">238</div>
+        <div style="font-size:1rem;">↓</div>
+        <div style="font-size:0.9rem; color:#22c55e; font-weight:700;">150台</div>
+      </div>
+      <div style="width:1px; background:#eee;"></div>
+      <div>
+        <div style="font-size:0.68rem; color:#888;">HDL</div>
+        <div style="font-size:0.9rem; color:#ef4444; font-weight:700;">31</div>
+        <div style="font-size:1rem;">↓</div>
+        <div style="font-size:0.9rem; color:#22c55e; font-weight:700;">40以上</div>
+      </div>
+      <div style="width:1px; background:#eee;"></div>
+      <div>
+        <div style="font-size:0.68rem; color:#888;">便通</div>
+        <div style="font-size:0.9rem; color:#ef4444; font-weight:700;">4-5日</div>
+        <div style="font-size:1rem;">↓</div>
+        <div style="font-size:0.9rem; color:#22c55e; font-weight:700;">毎日</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="reset-area">
+  <button class="reset-btn" onclick="resetToday()">今日をリセット</button>
+  <button class="week-reset-btn" onclick="resetWeek()">週カウンターをリセット</button>
+</div>
+
+<section style="margin-top: 32px;">
+  <div class="section-title">About</div>
+  <div class="summary-card" style="font-size: 0.78rem; line-height: 1.9; color: #aaa;">
+    <p style="color: #00d4ff; font-weight: 700; font-size: 0.85rem; margin-bottom: 10px;">このアプリができるまで</p>
+    <p>2025年9月の健康診断で、中性脂肪<span style="color:#f87171;">238</span>（基準値149以下）、HDL善玉コレステロール<span style="color:#f87171;">31</span>（基準値40以上）という結果が出た。担当医から「飲みすぎ」と指摘されたが、実際にはお酒はほぼ週1・スコッチ2杯程度。</p>
+    <p style="margin-top: 10px;">原因を掘り下げると、不規則な食事タイミング・ラーメンや丼ものの頻度・空腹時のドカ食いが主因と判明。以前1年以上続けていた<strong style="color:#f0f0f0;">MCTオイルコーヒー＋プロテイン＋夜1食</strong>スタイルが体に合っていたことを思い出し、そのスタイルに戻すことに。</p>
+    <p style="margin-top: 10px;">毎日の食事を全部記録するアプリは続かない。だから<strong style="color:#f0f0f0;">引き算で3つだけ</strong>管理することにした。</p>
+    <div style="margin-top: 14px; padding: 12px; background: #111; border-radius: 8px; border-left: 3px solid #00d4ff;">
+      <div style="color: #00d4ff; font-weight: 700; margin-bottom: 6px;">作戦</div>
+      <div>☕ 朝：MCTオイルコーヒー</div>
+      <div>💪 間食：プロテイン × アーモンドミルク無糖</div>
+      <div>🍜 ラーメンは週1回まで（日曜外食は別枠）</div>
+    </div>
+    <div style="margin-top: 14px; padding: 12px; background: #111; border-radius: 8px; border-left: 3px solid #4ade80;">
+      <div style="color: #4ade80; font-weight: 700; margin-bottom: 6px;">目標・次回健診</div>
+      <div>📅 2026年8月18日に再検査予定</div>
+      <div>📉 中性脂肪：238 → 150台</div>
+      <div>📈 HDL（善玉）：31 → 40以上</div>
+    </div>
+    <p style="margin-top: 12px; color: #555; font-size: 0.68rem;">「需要が先、ツールは後。」足し算ではなく引き算。</p>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const DAYS = ['日','月','火','水','木','金','土'];
+  const state = JSON.parse(localStorage.getItem('healthTracker') || '{}');
+
+  function getToday() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  function getWeekKey() {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day;
+    const mon = new Date(d.setDate(diff));
+    return mon.toISOString().split('T')[0];
+  }
+
+  function save() {
+    localStorage.setItem('healthTracker', JSON.stringify(state));
+  }
+
+  function toggleHabit(id) {
+    const today = getToday();
+    if (!state.days) state.days = {};
+    if (!state.days[today]) state.days[today] = {};
+    state.days[today][id] = !state.days[today][id];
+    save();
+    render();
+    const done = state.days[today][id];
+    showToast(done ? '✓ チェック！' : 'チェック解除');
+  }
+
+  function changeCount(key, delta) {
+    const wk = getWeekKey();
+    if (!state.weekly) state.weekly = {};
+    if (!state.weekly[wk]) state.weekly[wk] = {};
+    const cur = state.weekly[wk][key] || 0;
+    const next = Math.max(0, cur + delta);
+    state.weekly[wk][key] = next;
+    save();
+    renderCounters();
+
+    const limits = { ramen: 1, donburi: 2, chinese: 2 };
+    const names = { ramen: 'ラーメン', donburi: '丼もの', chinese: '中華' };
+    if (delta > 0 && next > limits[key]) {
+      showToast(`⚠️ ${names[key]}オーバー！`);
+    } else if (delta > 0) {
+      showToast(`${names[key]} ${next}回目`);
+    }
+  }
+
+  function renderHabits() {
+    const today = getToday();
+    const todayData = (state.days && state.days[today]) || {};
+    ['mct','protein'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (todayData[id]) btn.classList.add('checked');
+      else btn.classList.remove('checked');
+    });
+  }
+
+  function renderCounters() {
+    const wk = getWeekKey();
+    const weekly = (state.weekly && state.weekly[wk]) || {};
+    const limits = { ramen: 1, donburi: 2, chinese: 2 };
+    ['ramen','donburi','chinese'].forEach(key => {
+      const val = weekly[key] || 0;
+      const el = document.getElementById(`${key}-display`);
+      el.textContent = val;
+      el.className = 'count-display';
+      if (val === 0) el.classList.add('ok');
+      else if (val <= limits[key]) el.classList.add('warn');
+      else el.classList.add('over');
+    });
+  }
+
+  function renderWeekDots() {
+    const today = new Date();
+    const todayStr = getToday();
+    const dayOfWeek = today.getDay();
+    const container = document.getElementById('weekDots');
+    container.innerHTML = '';
+
+    let weekStreak = 0;
+    let streak = 0;
+    let total = 0;
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - dayOfWeek + i);
+      const dStr = d.toISOString().split('T')[0];
+      const dayData = (state.days && state.days[dStr]) || {};
+      const isFuture = d > today;
+      const isToday = dStr === todayStr;
+      const mct = dayData.mct;
+      const protein = dayData.protein;
+      const both = mct && protein;
+      const any = mct || protein;
+
+      if (!isFuture && both) { weekStreak++; streak++; total++; }
+      else if (!isFuture) streak = 0;
+
+      const div = document.createElement('div');
+      div.className = 'week-day';
+      const label = document.createElement('div');
+      label.className = 'week-label';
+      label.textContent = DAYS[i];
+      const dot = document.createElement('div');
+      dot.className = 'week-dot';
+      if (isToday) dot.classList.add('today');
+      if (!isFuture) {
+        if (both) { dot.classList.add('full'); dot.textContent = '✓'; }
+        else if (any) { dot.classList.add('partial'); dot.textContent = '△'; }
+        else { dot.textContent = '×'; }
+      }
+      div.appendChild(label);
+      div.appendChild(dot);
+      container.appendChild(div);
+    }
+
+    // 総達成日
+    let totalAll = 0;
+    if (state.days) {
+      Object.values(state.days).forEach(d => {
+        if (d.mct && d.protein) totalAll++;
+      });
+    }
+
+    document.getElementById('stat-streak').textContent = streak;
+    document.getElementById('stat-week').textContent = weekStreak;
+    document.getElementById('stat-total').textContent = totalAll;
+  }
+
+  function renderDate() {
+    const now = new Date();
+    const el = document.getElementById('dateDisplay');
+    el.innerHTML = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日<br>${DAYS[now.getDay()]}曜日`;
+
+    // 日曜バッジ
+    const badge = document.getElementById('sundayBadge');
+    if (now.getDay() === 0) badge.classList.add('show');
+  }
+
+  function render() {
+    renderDate();
+    renderHabits();
+    renderCounters();
+    renderWeekDots();
+  }
+
+  function resetToday() {
+    const today = getToday();
+    if (state.days) delete state.days[today];
+    save();
+    render();
+    showToast('今日のデータをリセット');
+  }
+
+  function resetWeek() {
+    const wk = getWeekKey();
+    if (state.weekly) delete state.weekly[wk];
+    save();
+    render();
+    showToast('週カウンターをリセット');
+  }
+
+  function showDoctorView() {
+    // 達成率計算
+    let totalAll = 0;
+    let streak = 0;
+    let tempStreak = 0;
+    const today = getToday();
+    if (state.days) {
+      const sorted = Object.keys(state.days).sort();
+      sorted.forEach(d => {
+        if (state.days[d].mct && state.days[d].protein) totalAll++;
+      });
+      // 連続日数
+      let d = new Date();
+      while(true) {
+        const ds = d.toISOString().split('T')[0];
+        const dd = (state.days && state.days[ds]) || {};
+        if (dd.mct && dd.protein) { streak++; d.setDate(d.getDate()-1); }
+        else break;
+      }
+    }
+    const startDate = new Date('2026-04-18');
+    const now = new Date();
+    const daysSinceStart = Math.max(1, Math.floor((now - startDate) / 86400000));
+    const rate = Math.min(100, Math.round((totalAll / daysSinceStart) * 100));
+
+    document.getElementById('doc-streak').textContent = streak;
+    document.getElementById('doc-total').textContent = totalAll;
+    document.getElementById('doc-rate').textContent = rate + '%';
+    document.getElementById('doctorModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideDoctorView() {
+    document.getElementById('doctorModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  render();
+</script>
+</body>
+</html>
